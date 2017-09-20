@@ -1,11 +1,17 @@
+import com.opencsv.bean.StatefulBeanToCsv;
+import com.opencsv.bean.StatefulBeanToCsvBuilder;
+import com.opencsv.exceptions.CsvDataTypeMismatchException;
+import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.File;
-import java.lang.reflect.Array;
+import java.io.Writer;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -17,7 +23,7 @@ public class urlParser {
 
     }
 
-    static void parseCategory(String url) throws IOException {
+    static void parseCategory(String url) throws IOException, CsvDataTypeMismatchException, CsvRequiredFieldEmptyException {
         String path;
         File file = new File(".");
         path = file.getAbsolutePath();
@@ -30,7 +36,8 @@ public class urlParser {
 
         Document doc = Jsoup.connect(url).get();
         Elements nums = doc.select("a.paginator-catalog-l-link");
-        int num = Integer.parseInt(nums.last().text());
+        int num;
+        num = Integer.parseInt(nums.last().text());
 
         for (int i=0; i < num; i++){
             String pg = url + String.format("page=%d", i+1);
@@ -41,48 +48,61 @@ public class urlParser {
 
     }
 
-    static void parseCategoryPage(String url) throws IOException {
+    static void parseCategoryPage(String url) throws IOException, CsvDataTypeMismatchException, CsvRequiredFieldEmptyException {
         Document doc = Jsoup.connect(url).get();
         Elements tiles = doc.select("div.g-i-tile-i-title");
-        for (Element tile: tiles
-                ) {
+        for (Element tile: tiles) {
                 String link = tile.select("a").attr("href") + "comments";
                 parseReviews(link);
                 }
     }
 
-    static void parseReviews(String url) throws IOException {
+    static void parseReviews(String url) throws IOException, CsvDataTypeMismatchException, CsvRequiredFieldEmptyException {
         Document doc = Jsoup.connect(url).get();
         Elements nums = doc.select("a.paginator-catalog-l-link");
-        if (nums.toArray().length > 0){
-            int num = Integer.parseInt(nums.last().text());
-        } else {
-            int num = 0;
+        int num = 0;
+        if (nums.toArray().length > 0) {
+            num = Integer.parseInt(nums.last().text());
         }
 
+        List<List<List<String>>> sentiments = new ArrayList<List<List<String>>>();
 
+        for (int i=0; i < num; i++){
+            String pg = url + String.format("page=%d", i+1);
+             sentiments.add(parseReviewsPage(pg));
+        }
 
-        /*
+        String filename = "data/" + url.split("/")[4] + ".csv";
 
+        // List<MyBean> beans comes from somewhere earlier in your code.
+        Writer writer = new FileWriter(filename);
+        StatefulBeanToCsv fileToCsv = new StatefulBeanToCsvBuilder(writer).build();
+        fileToCsv.write(sentiments);
+        writer.close();
 
-        sentiments = []
-
-        for i in range(num):
-           pg = url + 'page={}/'.format(i + 1)
-           sentiments += parse_reviews_page(pg)
-
-        filename = 'data/' + url.split('/')[4] + '.csv'
-
-        with open(filename,'w') as fl:
-            wr = csv.writer(fl, dialect='excel')
-            wr.writerows(sentiments)
-
-        print(len(sentiments), ' reviews from ', url)
-         */
+        System.out.println(sentiments.toArray().length + " reviews from " + url);
 
     }
 
-    static void parseReviewsPages(String url){
+    static List<List<String>> parseReviewsPage(String url) throws IOException {
+        Document doc = Jsoup.connect(url).get();
+        Elements reviews = doc.select("article.pp-review-i");
+        List<List<String>> sentiments = new ArrayList<List<String>>();
 
+        for (Element review : reviews) {
+            Elements star = review.select("span.g-rating-stars-i");
+            Elements text = review.select("div.pp-review-text");
+            if (star.size() > 0) {
+                Elements texts = text.select("div.pp-review-text-i");
+                String content = star.attr("content");
+                String txt = texts.first().text();
+                List <String> itemsToAdd = new ArrayList<String>();
+                itemsToAdd.add(content);
+                itemsToAdd.add(txt);
+                sentiments.add(itemsToAdd);
+
+            }
+        }
+        return sentiments;
     }
 }
