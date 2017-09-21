@@ -1,3 +1,4 @@
+// Necessary imports
 import com.opencsv.bean.StatefulBeanToCsv;
 import com.opencsv.bean.StatefulBeanToCsvBuilder;
 import com.opencsv.exceptions.CsvDataTypeMismatchException;
@@ -17,13 +18,17 @@ import java.util.List;
 
 public class urlParser {
     public static void main(String[] args) throws Exception{
-
+        // Set Category URL
         String url = "https://rozetka.com.ua/ua/headphones/c80027/";
+        // Parse Category
         parseCategory(url);
 
     }
 
     static void parseCategory(String url) throws IOException, CsvDataTypeMismatchException, CsvRequiredFieldEmptyException {
+        /*
+        This function creates a folder where scrapped data will be saved and connects to the Category catalog
+         */
         String path;
         File file = new File(".");
         path = file.getAbsolutePath();
@@ -39,7 +44,7 @@ public class urlParser {
 
         for (int i=0; i < num; i++){
             String pg = url + String.format("page=%d", i+1);
-            System.out.println(pg);
+            // parse page with id i+1
             parseCategoryPage(pg);
         }
 
@@ -47,6 +52,9 @@ public class urlParser {
     }
 
     static void parseCategoryPage(String url) throws IOException, CsvDataTypeMismatchException, CsvRequiredFieldEmptyException {
+        /*
+        This function connects to the page of catalog with given URL and calls function to parseReviews
+        */
         Document doc = Jsoup.connect(url).get();
         Elements tiles = doc.select("div.g-i-tile-i-title");
         for (Element tile: tiles) {
@@ -55,7 +63,12 @@ public class urlParser {
                 }
     }
 
-    static void parseReviews(String url) throws IOException, CsvDataTypeMismatchException, CsvRequiredFieldEmptyException {
+    static void parseReviews(String url) throws IOException, CsvDataTypeMismatchException,
+            CsvRequiredFieldEmptyException {
+         /*
+        This function gets reviews of the page with given URL, calls function parseReviewsPage to get reviews and writes
+        them to .csv file for each product.
+        */
         Document doc = Jsoup.connect(url).get();
         Elements nums = doc.select("a.paginator-catalog-l-link");
         int num = 0;
@@ -94,6 +107,10 @@ public class urlParser {
     }
 
     static List<List<String>> parseReviewsPage(String url) throws IOException {
+         /*
+        This function connects to the page of catalog with given URL and get's all reviews with not null star and returns
+        a List of Lists of <String> [[star, review], [...], ...]
+        */
         Document doc = Jsoup.connect(url).get();
         Elements reviews = doc.select("article.pp-review-i");
         List<List<String>> sentiments = new ArrayList<List<String>>();
