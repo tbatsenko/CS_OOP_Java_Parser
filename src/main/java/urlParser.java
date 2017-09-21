@@ -29,9 +29,7 @@ public class urlParser {
         path = file.getAbsolutePath();
         File fileData = new File("data");
         if (!fileData.exists()) {
-            System.out.print("No Folder");
             fileData.mkdir();
-            System.out.print("Folder created");
         }
 
         Document doc = Jsoup.connect(url).get();
@@ -68,19 +66,30 @@ public class urlParser {
         List<List<List<String>>> sentiments = new ArrayList<List<List<String>>>();
 
         for (int i=0; i < num; i++){
-            String pg = url + String.format("page=%d", i+1);
-             sentiments.add(parseReviewsPage(pg));
+            String pg = url + String.format("/page=%d", i+1);
+            sentiments.add(parseReviewsPage(pg));
         }
-
+        //System.out.println(sentiments);
         String filename = "data/" + url.split("/")[4] + ".csv";
 
-        // List<MyBean> beans comes from somewhere earlier in your code.
+
         Writer writer = new FileWriter(filename);
         StatefulBeanToCsv fileToCsv = new StatefulBeanToCsvBuilder(writer).build();
-        fileToCsv.write(sentiments);
+
+        int reviewsCounter = 0;
+
+        for (List sentiment: sentiments
+             ) {
+            for (Object comment : sentiment) {
+                reviewsCounter += 1;
+                //System.out.println(comment.toString().replace("[", "").replace("]", ""));
+                writer.write(comment.toString().replace("[", "").replace("]", "") + "\n");
+            }
+        }
+
         writer.close();
 
-        System.out.println(sentiments.toArray().length + " reviews from " + url);
+        System.out.println(reviewsCounter + " reviews from " + url);
 
     }
 
@@ -89,17 +98,24 @@ public class urlParser {
         Elements reviews = doc.select("article.pp-review-i");
         List<List<String>> sentiments = new ArrayList<List<String>>();
 
+
         for (Element review : reviews) {
+
             Elements star = review.select("span.g-rating-stars-i");
-            Elements text = review.select("div.pp-review-text");
+
             if (star.size() > 0) {
+                Elements text = review.select("div.pp-review-text");
+
+
                 Elements texts = text.select("div.pp-review-text-i");
                 String content = star.attr("content");
-                String txt = texts.first().text();
-                List <String> itemsToAdd = new ArrayList<String>();
+                String txt = texts.text();
+                List<String> itemsToAdd = new ArrayList<String>();
                 itemsToAdd.add(content);
                 itemsToAdd.add(txt);
+
                 sentiments.add(itemsToAdd);
+
 
             }
         }
