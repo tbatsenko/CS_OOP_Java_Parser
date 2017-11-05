@@ -5,7 +5,9 @@ public class urlParser {
         if(args.length != 0){
             url = args[0];
         }
-        // Parse Category
+        /**
+         * @see results of parser in the console and "data" directory created in your path
+         */
         CategoryParser.parseCategory(url);
     }
 }
